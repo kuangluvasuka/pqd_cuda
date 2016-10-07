@@ -1,0 +1,20 @@
+#!/bin/bash
+#PBS -l nodes=2:ppn=2
+#PBS -l walltime=00:29:00
+#PBS -o pqd1.out
+#PBS -j oe
+#PBS -N pqd1
+#PBS -A lc_an
+##PBS -m ae
+#PBS -M anakano@usc.edu
+##source /usr/usc/openmpi/default/setup.sh
+WORK_HOME=/home/rcf-proj/an/anakano/hpc/cs653
+cd $WORK_HOME
+###########################################
+echo "starting simulation **************************************"
+date
+np=$(cat $PBS_NODEFILE | wc -l)
+mpirun -np $np -machinefile $PBS_NODEFILE ./pqd1
+date
+echo "simulation finished **************************************"
+echo
