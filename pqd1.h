@@ -1,11 +1,20 @@
 /*******************************************************************************
 File pqd1.h is a header file for program pqd1.c.
 *******************************************************************************/
+#ifndef PQD1_H
+#define PQD1_H
+
 #include <stdio.h>
 #include <math.h>
 #include "mpi.h"
+#include <omp.h>
+#include <cuda.h>
 
 #define NX 128   /* Number of mesh points */
+
+/* GPU kernel prototypes */
+__global__ void gpu_pot_prop(double* psi, double* u);
+__global__ void gpu_kin_prop(double* psi, double* wrk, double* al, double* blx, double* bux, int t);
 
 /* Function prototypes ********************************************************/
 void init_param();
@@ -39,12 +48,12 @@ blx[2][NX+2][2]: blx[0|1][i][] is the half|full-step lower off-diagonal kinetic
 v[NX+2]:         v[i] is the potential energy at mesh point i
 u[NX+2][2]:      u[i][] is the potential propagator on i (real|imaginary part)
 *******************************************************************************/
-double psi[NX+2][2];
-double wrk[NX+2][2];
-double al[2][2];
-double bux[2][NX+2][2],blx[2][NX+2][2];
+double psi[NX+2][2], *dev_psi;
+double wrk[NX+2][2], *dev_wrk;
+double al[2][2], *dev_al;
+double bux[2][NX+2][2],blx[2][NX+2][2], *dev_bux, *dev_blx;
 double v[NX+2];
-double u[NX+2][2];
+double u[NX+2][2], *dev_u;
 
 /* Variables *******************************************************************
 dx    = Mesh spacing
@@ -57,3 +66,5 @@ nproc = Number of processes
 double dx;
 double ekin,epot,etot;
 int myid,nproc;
+
+#endif

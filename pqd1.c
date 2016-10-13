@@ -8,6 +8,8 @@ USAGE
 *******************************************************************************/
 #include "pqd1.h"
 
+#define USE_GPU_PROP 1
+
 int main(int argc, char **argv) {
 	int step; /* Simulation loop iteration index */
 	double cpu1;
@@ -19,6 +21,25 @@ int main(int argc, char **argv) {
 	init_param();  /* Read input parameters */
 	init_prop();   /* Initialize the kinetic & potential propagators */
 	init_wavefn(); /* Initialize the electron wave function */
+
+	if (USE_GPU_PROP == 1) {
+		int dev_num;
+		cudaSetDevice(myid % 2);
+		cudaGetDevice(&dev_num);
+		printf("myid is %d, GPU id is %d", myid, dev_num);
+		
+		cudaMalloc((void**) &dev_psi, sizeof(double) * 2 * (NX+2));
+		cudaMalloc((void**) &dev_wrk, sizeof(double) * 2 * (NX+2));
+		cudaMalloc((void**) &dev_u, sizeof(double) * 2 * (NX+2));
+		cudaMalloc((void**) &dev_al, sizeof(double) * 2 * 2);
+		cudaMalloc((void**) &dev_blx, sizeof(double) * 2 * (NX+2) * 2);
+		cudaMalloc((void**) &dev_bux, sizeof(double) * 2 * (NX+2) * 2);
+		
+		cudaMemcpy2D(dev_u, 2*sizeof(double), u, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+		cudaMemcpy2D(dev_al, 2*sizeof(double), u, 2*sizeof(double), 2*sizeof(double), 2, cudaMemcpyHostToDevice);
+		cudaMemcpy(dev_blx, blx, 2*(NX+2)*2*sizeof(double), cudaMemcpyHostToDevice);
+		cudaMemcpy(dev_bux, bux, 2*(NX+2)*2*sizeof(double), cudaMemcpyHostToDevice);
+	}
 
 	cpu1 = MPI_Wtime();
 	for (step=1; step<=NSTEP; step++) {
@@ -165,14 +186,23 @@ void pot_prop() {
 /*------------------------------------------------------------------------------
 	Potential propagator for a half time step, DT/2.
 ------------------------------------------------------------------------------*/
-	int sx;
-	double wr,wi;
+	if (USE_GPU_PROP == 0) {
+		int sx;
+		double wr,wi;
 
-	for (sx=1; sx<=NX; sx++) {
-		wr=u[sx][0]*psi[sx][0]-u[sx][1]*psi[sx][1];
-		wi=u[sx][0]*psi[sx][1]+u[sx][1]*psi[sx][0];
-		psi[sx][0]=wr;
-		psi[sx][1]=wi;
+		for (sx=1; sx<=NX; sx++) {
+			wr=u[sx][0]*psi[sx][0]-u[sx][1]*psi[sx][1];
+			wi=u[sx][0]*psi[sx][1]+u[sx][1]*psi[sx][0];
+			psi[sx][0]=wr;
+			psi[sx][1]=wi;
+		}
+	} else {
+		cudaMemcpy2D(dev_psi, 2*sizeof(double), psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+		
+		gpu_pot_prop<<<1, NX>>>(dev_psi, dev_u);
+		
+		cudaMemcpy2D(psi, 2*sizeof(double), dev_psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyDeviceToHost);
+		
 	}
 }
 
@@ -181,23 +211,34 @@ void kin_prop(int t) {
 /*------------------------------------------------------------------------------
 	Kinetic propagation for t (=0 for DT/2--half; 1 for DT--full) step.
 -------------------------------------------------------------------------------*/
-	int sx,s;
-	double wr,wi;
-
+	
 	/* Apply the periodic boundary condition */
 	periodic_bc();
 
-	/* WRK|PSI holds the new|old wave function */
-	for (sx=1; sx<=NX; sx++) {
-		wr = al[t][0]*psi[sx][0]-al[t][1]*psi[sx][1];
-		wi = al[t][0]*psi[sx][1]+al[t][1]*psi[sx][0];
-		wr += (blx[t][sx][0]*psi[sx-1][0]-blx[t][sx][1]*psi[sx-1][1]);
-		wi += (blx[t][sx][0]*psi[sx-1][1]+blx[t][sx][1]*psi[sx-1][0]);
-		wr += (bux[t][sx][0]*psi[sx+1][0]-bux[t][sx][1]*psi[sx+1][1]);
-		wi += (bux[t][sx][0]*psi[sx+1][1]+bux[t][sx][1]*psi[sx+1][0]);
-		wrk[sx][0] = wr;
-		wrk[sx][1] = wi;
+	if (USE_GPU_PROP == 0) {
+		int sx,s;
+		double wr,wi;
+		/* WRK|PSI holds the new|old wave function */
+		for (sx=1; sx<=NX; sx++) {
+			wr = al[t][0]*psi[sx][0]-al[t][1]*psi[sx][1];
+			wi = al[t][0]*psi[sx][1]+al[t][1]*psi[sx][0];
+			wr += (blx[t][sx][0]*psi[sx-1][0]-blx[t][sx][1]*psi[sx-1][1]);
+			wi += (blx[t][sx][0]*psi[sx-1][1]+blx[t][sx][1]*psi[sx-1][0]);
+			wr += (bux[t][sx][0]*psi[sx+1][0]-bux[t][sx][1]*psi[sx+1][1]);
+			wi += (bux[t][sx][0]*psi[sx+1][1]+bux[t][sx][1]*psi[sx+1][0]);
+			wrk[sx][0] = wr;
+			wrk[sx][1] = wi;
+		}
+	} else {
+		cudaMemcpy2D(dev_psi, 2*sizeof(double), psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+		cudaMemcpy2D(dev_wrk, 2*sizeof(double), wrk, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+		
+		gpu_kin_prop<<<1, NX>>>(dev_psi, dev_wrk, dev_al, dev_blx, dev_bux, t);
+
+		cudaMemcpy2D(wrk, 2*sizeof(double), dev_wrk, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyDeviceToHost);
 	}
+
+
 
 	/* Copy the new wave function back to PSI */
 	for (sx=1; sx<=NX; sx++)
