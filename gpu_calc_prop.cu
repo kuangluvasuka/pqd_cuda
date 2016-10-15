@@ -1,4 +1,5 @@
 #include "pqd1.h"
+#include <cuda.h>
 
 
 

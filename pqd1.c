@@ -215,9 +215,9 @@ void kin_prop(int t) {
 	/* Apply the periodic boundary condition */
 	periodic_bc();
 
+	int sx,s;
+	double wr,wi;
 	if (USE_GPU_PROP == 0) {
-		int sx,s;
-		double wr,wi;
 		/* WRK|PSI holds the new|old wave function */
 		for (sx=1; sx<=NX; sx++) {
 			wr = al[t][0]*psi[sx][0]-al[t][1]*psi[sx][1];

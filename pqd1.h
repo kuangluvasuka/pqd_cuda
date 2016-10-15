@@ -55,6 +55,7 @@ double bux[2][NX+2][2],blx[2][NX+2][2], *dev_bux, *dev_blx;
 double v[NX+2];
 double u[NX+2][2], *dev_u;
 
+
 /* Variables *******************************************************************
 dx    = Mesh spacing
 ekin  = Kinetic energy
