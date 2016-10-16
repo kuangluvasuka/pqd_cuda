@@ -11,6 +11,12 @@ USAGE
 
 #define USE_GPU_PROP 1
 
+void gpu_init(int myid);
+void gpu_lanch_pot_prop();
+void gpu_lanch_kin_prop(int t);
+
+
+
 int main(int argc, char **argv) {
 	int step; /* Simulation loop iteration index */
 	double cpu1;
