@@ -24,6 +24,7 @@ int main(int argc, char **argv) {
 	MPI_Init(&argc,&argv); /* Initialize the MPI environment */
 	MPI_Comm_rank(MPI_COMM_WORLD,&myid); /* My process ID */
 	MPI_Comm_size(MPI_COMM_WORLD,&nproc); /* Number of processors */
+	printf("MPI process is %d\n", myid);
 
 	init_param();  /* Read input parameters */
 	init_prop();   /* Initialize the kinetic & potential propagators */
@@ -207,7 +208,7 @@ void kin_prop(int t) {
 
 	int sx,s;
 	double wr,wi;
-	if (USE_GPU_PROP == 0) {
+	if (USE_GPU_PROP == 1) {
 		/* WRK|PSI holds the new|old wave function */
 		for (sx=1; sx<=NX; sx++) {
 			wr = al[t][0]*psi[sx][0]-al[t][1]*psi[sx][1];

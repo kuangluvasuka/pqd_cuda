@@ -11,7 +11,7 @@ extern "C" void gpu_init(int myid) {
     int dev_num;
 	cudaSetDevice(myid % 2);
     cudaGetDevice(&dev_num);
-    printf("myid is %d, GPU id is %d", myid, dev_num);
+    printf("myid is %d, GPU id is %d\n", myid, dev_num);
     
     cudaMalloc((void**) &dev_psi, sizeof(double) * 2 * (NX+2));
     cudaMalloc((void**) &dev_wrk, sizeof(double) * 2 * (NX+2));
