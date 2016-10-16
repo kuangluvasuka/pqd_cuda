@@ -6,15 +6,9 @@ File pqd1.h is a header file for program pqd1.c.
 
 #include <stdio.h>
 #include <math.h>
-#include "mpi.h"
-#include <omp.h>
-#include <cuda.h>
 
 #define NX 128   /* Number of mesh points */
 
-/* GPU kernel prototypes */
-__global__ void gpu_pot_prop(double* psi, double* u);
-__global__ void gpu_kin_prop(double* psi, double* wrk, double* al, double* blx, double* bux, int t);
 
 /* Function prototypes ********************************************************/
 void init_param();

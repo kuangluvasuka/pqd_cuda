@@ -7,6 +7,7 @@ USAGE
 %mpirun -np ### pqd1 (see pqd1.h for the format of the input file, pqd1.in)
 *******************************************************************************/
 #include "pqd1.h"
+#include "mpi.h"
 
 #define USE_GPU_PROP 1
 
@@ -23,22 +24,9 @@ int main(int argc, char **argv) {
 	init_wavefn(); /* Initialize the electron wave function */
 
 	if (USE_GPU_PROP == 1) {
-		int dev_num;
-		cudaSetDevice(myid % 2);
-		cudaGetDevice(&dev_num);
-		printf("myid is %d, GPU id is %d", myid, dev_num);
 		
-		cudaMalloc((void**) &dev_psi, sizeof(double) * 2 * (NX+2));
-		cudaMalloc((void**) &dev_wrk, sizeof(double) * 2 * (NX+2));
-		cudaMalloc((void**) &dev_u, sizeof(double) * 2 * (NX+2));
-		cudaMalloc((void**) &dev_al, sizeof(double) * 2 * 2);
-		cudaMalloc((void**) &dev_blx, sizeof(double) * 2 * (NX+2) * 2);
-		cudaMalloc((void**) &dev_bux, sizeof(double) * 2 * (NX+2) * 2);
+		gpu_init(myid);
 		
-		cudaMemcpy2D(dev_u, 2*sizeof(double), u, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
-		cudaMemcpy2D(dev_al, 2*sizeof(double), u, 2*sizeof(double), 2*sizeof(double), 2, cudaMemcpyHostToDevice);
-		cudaMemcpy(dev_blx, blx, 2*(NX+2)*2*sizeof(double), cudaMemcpyHostToDevice);
-		cudaMemcpy(dev_bux, bux, 2*(NX+2)*2*sizeof(double), cudaMemcpyHostToDevice);
 	}
 
 	cpu1 = MPI_Wtime();
@@ -197,11 +185,7 @@ void pot_prop() {
 			psi[sx][1]=wi;
 		}
 	} else {
-		cudaMemcpy2D(dev_psi, 2*sizeof(double), psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
-		
-		gpu_pot_prop<<<1, NX>>>(dev_psi, dev_u);
-		
-		cudaMemcpy2D(psi, 2*sizeof(double), dev_psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyDeviceToHost);
+		gpu_lanch_pot_prop();
 		
 	}
 }
@@ -230,12 +214,8 @@ void kin_prop(int t) {
 			wrk[sx][1] = wi;
 		}
 	} else {
-		cudaMemcpy2D(dev_psi, 2*sizeof(double), psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
-		cudaMemcpy2D(dev_wrk, 2*sizeof(double), wrk, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+		gpu_lanch_kin_prop(t);
 		
-		gpu_kin_prop<<<1, NX>>>(dev_psi, dev_wrk, dev_al, dev_blx, dev_bux, t);
-
-		cudaMemcpy2D(wrk, 2*sizeof(double), dev_wrk, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyDeviceToHost);
 	}
 
 
