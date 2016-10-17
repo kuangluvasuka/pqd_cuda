@@ -21,7 +21,7 @@ extern "C" void gpu_init(int myid) {
     cudaMalloc((void**) &dev_bux, sizeof(double) * 2 * (NX+2) * 2);
     
     cudaMemcpy2D(dev_u, 2*sizeof(double), u, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
-    cudaMemcpy2D(dev_al, 2*sizeof(double), u, 2*sizeof(double), 2*sizeof(double), 2, cudaMemcpyHostToDevice);
+    cudaMemcpy2D(dev_al, 2*sizeof(double), al, 2*sizeof(double), 2*sizeof(double), 2, cudaMemcpyHostToDevice);
     cudaMemcpy(dev_blx, blx, 2*(NX+2)*2*sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_bux, bux, 2*(NX+2)*2*sizeof(double), cudaMemcpyHostToDevice);
 }
