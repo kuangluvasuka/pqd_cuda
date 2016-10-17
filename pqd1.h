@@ -45,7 +45,7 @@ u[NX+2][2]:      u[i][] is the potential propagator on i (real|imaginary part)
 double psi[NX+2][2], *dev_psi;
 double wrk[NX+2][2], *dev_wrk;
 double al[2][2], *dev_al;
-double bux[2][NX+2][2],blx[2][NX+2][2], *dev_bux, *dev_blx;
+double bux[2][NX+2][2],blx[2][NX+2][2], *dev_bux0, *dev_bux1, *dev_blx0, *dev_blx1;
 double v[NX+2];
 double u[NX+2][2], *dev_u;
 

@@ -17,13 +17,19 @@ extern "C" void gpu_init(int myid) {
     cudaMalloc((void**) &dev_wrk, sizeof(double) * 2 * (NX+2));
     cudaMalloc((void**) &dev_u, sizeof(double) * 2 * (NX+2));
     cudaMalloc((void**) &dev_al, sizeof(double) * 2 * 2);
-    cudaMalloc((void**) &dev_blx, sizeof(double) * 2 * (NX+2) * 2);
-    cudaMalloc((void**) &dev_bux, sizeof(double) * 2 * (NX+2) * 2);
+    cudaMalloc((void**) &dev_blx0, sizeof(double) * 2 * (NX+2));
+    cudaMalloc((void**) &dev_blx1, sizeof(double) * 2 * (NX+2));
+    cudaMalloc((void**) &dev_bux0, sizeof(double) * 2 * (NX+2));
+    cudaMalloc((void**) &dev_bux1, sizeof(double) * 2 * (NX+2));
     
     cudaMemcpy2D(dev_u, 2*sizeof(double), u, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
-    cudaMemcpy2D(dev_al, 2*sizeof(double), u, 2*sizeof(double), 2*sizeof(double), 2, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_blx, blx, 2*(NX+2)*2*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_bux, bux, 2*(NX+2)*2*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy2D(dev_al, 2*sizeof(double), al, 2*sizeof(double), 2*sizeof(double), 2, cudaMemcpyHostToDevice);
+
+    cudaMemcpy2D(dev_blx0, 2*sizeof(double), blx[0], 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+    cudaMemcpy2D(dev_blx1, 2*sizeof(double), blx[1], 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+    cudaMemcpy2D(dev_bux0, 2*sizeof(double), bux[0], 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+    cudaMemcpy2D(dev_bux1, 2*sizeof(double), bux[1], 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+
 }
 
 
@@ -40,9 +46,15 @@ extern "C" void gpu_lanch_kin_prop(int t) {
     cudaMemcpy2D(dev_psi, 2*sizeof(double), psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
     cudaMemcpy2D(dev_wrk, 2*sizeof(double), wrk, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
     
-    gpu_kin_prop<<<1, NX>>>(dev_psi, dev_wrk, dev_al, dev_blx, dev_bux, t);
+    if (t == 0) {
+      gpu_kin_prop<<<1, NX>>>(dev_psi, dev_wrk, dev_al, dev_blx0, dev_bux0, t);
+
+    } else {
+      gpu_kin_prop<<<1, NX>>>(dev_psi, dev_wrk, dev_al, dev_blx1, dev_bux1, t);
+    }
 
     cudaMemcpy2D(wrk, 2*sizeof(double), dev_wrk, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyDeviceToHost);
+    cudaMemcpy2D(psi, 2*sizeof(double), dev_psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyDeviceToHost);
 
 }
 
@@ -70,8 +82,8 @@ __global__ void gpu_kin_prop(double* psi, double* wrk, double* al, double* blx, 
     int sx = tid + 1;
 	double wr,wi;
     if (sx <= NX) {
-        double* row_blx = (double*)((char*)blx + t * NX * 2 * sizeof(double) + sx * 2 * sizeof(double));
-        double* row_bux = (double*)((char*)bux + t * NX * 2 * sizeof(double) + sx * 2 * sizeof(double));
+        double* row_blx = (double*)((char*)blx + sx * 2 * sizeof(double));
+        double* row_bux = (double*)((char*)bux + sx * 2 * sizeof(double));
         double* row_psi = (double*)((char*)psi + sx * 2 * sizeof(double));
         double* row_psi_r = (double*)((char*)psi + (sx+1) * 2 * sizeof(double));
         double* row_psi_l = (double*)((char*)psi + (sx-1) * 2 * sizeof(double));
@@ -86,6 +98,9 @@ __global__ void gpu_kin_prop(double* psi, double* wrk, double* al, double* blx, 
         wi += (row_bux[0]*row_psi_r[1]+row_bux[1]*row_psi_r[0]);
         row_wrk[0] = wr;
         row_wrk[1] = wi;
+	
+	row_psi[0] = row_wrk[0];
+	row_psi[1] = row_wrk[1];
     }
 
 }
