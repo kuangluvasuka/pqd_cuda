@@ -36,8 +36,11 @@ extern "C" void gpu_init(int myid) {
 
 extern "C" void gpu_lanch_pot_prop() {
     cudaMemcpy2D(dev_psi, 2*sizeof(double), psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+
+    int thread_per_block = 64;
+    int num_block = NX / thread_per_block;
     
-    gpu_pot_prop<<<1, NX>>>(dev_psi, dev_u);
+    gpu_pot_prop<<<num_block, thread_per_block>>>(dev_psi, dev_u);
     
     cudaMemcpy2D(psi, 2*sizeof(double), dev_psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyDeviceToHost);
 }
@@ -45,12 +48,15 @@ extern "C" void gpu_lanch_pot_prop() {
 extern "C" void gpu_lanch_kin_prop(int t) {
     cudaMemcpy2D(dev_psi, 2*sizeof(double), psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
     cudaMemcpy2D(dev_wrk, 2*sizeof(double), wrk, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
+
+    int thread_per_block = 64;
+    int num_block = NX / thread_per_block;
     
     if (t == 0) {
-      gpu_kin_prop<<<1, NX>>>(dev_psi, dev_wrk, dev_al, dev_blx0, dev_bux0, t);
+      gpu_kin_prop<<<num_block, thread_per_block>>>(dev_psi, dev_wrk, dev_al, dev_blx0, dev_bux0, t);
 
     } else {
-      gpu_kin_prop<<<1, NX>>>(dev_psi, dev_wrk, dev_al, dev_blx1, dev_bux1, t);
+      gpu_kin_prop<<<num_block, thread_per_block>>>(dev_psi, dev_wrk, dev_al, dev_blx1, dev_bux1, t);
     }
 
     cudaMemcpy2D(wrk, 2*sizeof(double), dev_wrk, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyDeviceToHost);

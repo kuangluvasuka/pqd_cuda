@@ -7,7 +7,7 @@ File pqd1.h is a header file for program pqd1.c.
 #include <stdio.h>
 #include <math.h>
 
-#define NX 128   /* Number of mesh points */
+#define NX 2496   /* Number of mesh points */
 
 
 /* Function prototypes ********************************************************/
