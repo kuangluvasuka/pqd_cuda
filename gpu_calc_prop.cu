@@ -47,7 +47,6 @@ extern "C" void gpu_lanch_pot_prop() {
     
 extern "C" void gpu_lanch_kin_prop(int t) {
     cudaMemcpy2D(dev_psi, 2*sizeof(double), psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
-    cudaMemcpy2D(dev_wrk, 2*sizeof(double), wrk, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyHostToDevice);
 
     int thread_per_block = 64;
     int num_block = NX / thread_per_block;
@@ -59,7 +58,6 @@ extern "C" void gpu_lanch_kin_prop(int t) {
       gpu_kin_prop<<<num_block, thread_per_block>>>(dev_psi, dev_wrk, dev_al, dev_blx1, dev_bux1, t);
     }
 
-    cudaMemcpy2D(wrk, 2*sizeof(double), dev_wrk, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyDeviceToHost);
     cudaMemcpy2D(psi, 2*sizeof(double), dev_psi, 2*sizeof(double), 2*sizeof(double), NX+2, cudaMemcpyDeviceToHost);
 
 }

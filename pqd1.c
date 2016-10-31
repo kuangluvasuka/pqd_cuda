@@ -220,10 +220,10 @@ void kin_prop(int t) {
 			wrk[sx][0] = wr;
 			wrk[sx][1] = wi;
 		}
-		/* Copy the new wave function back to PSI */
-		for (sx=1; sx<=NX; sx++)
+	        /* Copy the new wave function back to PSI */
+	        for (sx=1; sx<=NX; sx++)
 		    for (s=0; s<=1; s++)
-			psi[sx][s] = wrk[sx][s];
+		        psi[sx][s] = wrk[sx][s];
 	} else {
 		gpu_lanch_kin_prop(t);
 		
